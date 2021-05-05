@@ -60,7 +60,7 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
 {
     data_ptr->font = TTF_OpenFont("resrc/OpenSans-Regular.ttf", 24);
 
-    SDL_Surface *img_surf = IMG_Load("resrc/images/linux-penguin.png");
+    SDL_Surface *img_surf = IMG_Load("resrc/images/tux.png");
     data_ptr->penguin = SDL_CreateTextureFromSurface(renderer, img_surf);
     SDL_FreeSurface(img_surf);
 
