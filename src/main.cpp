@@ -28,6 +28,7 @@ typedef struct AppData {
 void initialize(SDL_Renderer *renderer, AppData *data_ptr);
 void render(SDL_Renderer *renderer, AppData *data_ptr);
 void quit(AppData *data_ptr);
+std::string clickedCheck(AppData *data_ptr, SDL_Event *event);
 
 int main(int argc, char **argv)
 {
@@ -53,7 +54,12 @@ int main(int argc, char **argv)
     while (event.type != SDL_QUIT)
     {
         SDL_WaitEvent(&event);
-
+        switch (event.type)
+        {
+            case SDL_MOUSEBUTTONDOWN:
+                std::string itemClicked = clickedCheck(&data, &event);
+                printf("%s\n", itemClicked);
+        }
         render(renderer, &data);
     }
 
@@ -184,4 +190,26 @@ void quit(AppData *data_ptr)
         SDL_DestroyTexture(data_ptr->files_textures[i]);
     }
     TTF_CloseFont(data_ptr->font);
+}
+
+std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
+    std::string nullReturn;
+    for (int i = 0; i < data_ptr->files.size(); i++) {
+        printf("%d :  %d %d %d %d",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->w, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h );
+
+        if (event->button.button == SDL_BUTTON_LEFT &&
+            event->button.x >= data_ptr->files_rect[i]->x &&
+            event->button.x <= data_ptr->files_rect[i]->x + data_ptr->files_rect[i]->w &&
+            event->button.y >= data_ptr->files_rect[i]->y &&
+            event->button.y <= data_ptr->files_rect[i]->y + data_ptr->files_rect[i]->h)
+        {
+            return data_ptr->files[i];
+        }
+    }
+    printf("clicked on empty space");
+    return nullReturn;
+}
+
+void clickedOnDirectory(AppData *data_ptr) {
+    //Not sure what to put here tbh
 }
