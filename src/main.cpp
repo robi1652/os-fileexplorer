@@ -212,4 +212,5 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
 
 void clickedOnDirectory(AppData *data_ptr) {
     //Not sure what to put here tbh
+    return;
 }
