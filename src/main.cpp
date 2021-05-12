@@ -185,16 +185,16 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
         data_ptr->icon_rect[i]->y = icon_y;
         data_ptr->icon_rect[i]->w = 40;
         data_ptr->icon_rect[i]->h = 40;
-        SDL_Rect rect = *data_ptr->files_rect[i];
-        rect.x = curr_x;
-        rect.y = curr_y;
+        //SDL_Rect rect = *data_ptr->files_rect[i];
+        data_ptr->files_rect[i]->x = curr_x;
+        data_ptr->files_rect[i]->y = curr_y;
         SDL_RenderCopy(renderer, data_ptr->directory_icon, NULL, &(*data_ptr->icon_rect[i]));
-        SDL_QueryTexture(data_ptr->files_textures[i], NULL, NULL, &(rect.w), &(rect.h));
-        SDL_RenderCopy(renderer, data_ptr->files_textures[i], NULL, &rect);
-        rect.x = rect.x + 400;
+        SDL_QueryTexture(data_ptr->files_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
+        SDL_RenderCopy(renderer, data_ptr->files_textures[i], NULL, data_ptr->files_rect[i]);
+        data_ptr->files_rect[i]->x += 400;
         if (data_ptr->file_sizes[i] != -1) {
-            SDL_QueryTexture(data_ptr->file_sizes_textures[i], NULL, NULL, &(rect.w), &(rect.h));
-            SDL_RenderCopy(renderer, data_ptr->file_sizes_textures[i], NULL, &rect);
+            SDL_QueryTexture(data_ptr->file_sizes_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
+            SDL_RenderCopy(renderer, data_ptr->file_sizes_textures[i], NULL, data_ptr->files_rect[i]);
         }
         //SDL_Surface *img_surf = IMG_Load("resrc/images/tux.png");
         //data_ptr->penguin = SDL_CreateTextureFromSurface(renderer, img_surf);
@@ -235,16 +235,17 @@ void quit(AppData *data_ptr)
 }
 
 std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
-    std::string nullReturn;
-    for (int i = 0; i < data_ptr->files.size(); i++) {
-        printf("%d :  %d %d %d %d",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->w, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h );
-
+    int i = 0;
+    printf("%d : %d\n", event->button.x, event->button.y);
+    for (i = 0; i < data_ptr->files.size(); i++) {
+        printf("%d :  %d %d %d %d\n",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h, data_ptr->files_rect[i]->w );
         if (event->button.button == SDL_BUTTON_LEFT &&
             event->button.x >= data_ptr->files_rect[i]->x &&
             event->button.x <= data_ptr->files_rect[i]->x + data_ptr->files_rect[i]->w &&
             event->button.y >= data_ptr->files_rect[i]->y &&
             event->button.y <= data_ptr->files_rect[i]->y + data_ptr->files_rect[i]->h)
         {
+            
             return data_ptr->files[i];
         }
     }
