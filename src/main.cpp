@@ -35,12 +35,13 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr);
 void render(SDL_Renderer *renderer, AppData *data_ptr);
 void quit(AppData *data_ptr);
 std::string clickedCheck(AppData *data_ptr, SDL_Event *event);
+void clickedOnDirectory(AppData *data_ptr);
 
 int main(int argc, char **argv)
 {
     char *home = getenv("HOME");
     printf("HOME: %s\n", home);
-
+    
     // initializing SDL as Video
     SDL_Init(SDL_INIT_VIDEO);
     IMG_Init(IMG_INIT_PNG);
@@ -54,6 +55,7 @@ int main(int argc, char **argv)
     // initialize and perform rendering loop
     AppData data;
     initialize(renderer, &data);
+    clickedOnDirectory(&data);
     render(renderer, &data);
     SDL_Event event;
     SDL_WaitEvent(&event);
@@ -64,8 +66,12 @@ int main(int argc, char **argv)
         {
             case SDL_MOUSEBUTTONDOWN:
                 std::string itemClicked = clickedCheck(&data, &event);
-                printf("%s\n", itemClicked);
+                //How do we know what's a directory and what's a file
+                printf("%s\n", itemClicked.c_str());
         }
+        
+        //Should be an if check to make sure it's actually a directory 
+        clickedOnDirectory(&data);
         render(renderer, &data);
     }
 
@@ -171,14 +177,15 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
     SDL_SetRenderDrawColor(renderer, 235, 235, 235, 255);
     SDL_RenderClear(renderer);
     
+
     // TODO: draw!
     //SDL_RenderCopy(renderer, data_ptr->penguin, NULL, &rect);
-    int curr_x = 60;
-    int curr_y = 10;
+    //int curr_x = 60;
+    //int curr_y = 10;
 
-    int icon_y = 10;
-
+    //int icon_y = 10;
     for (int i = data_ptr->page * 15; i < data_ptr->page * 15 + 15; i++) {
+        /*
         data_ptr->files_rect.push_back(new SDL_Rect);
         data_ptr->icon_rect.push_back(new SDL_Rect);
         data_ptr->icon_rect[i]->x = 10;
@@ -188,20 +195,25 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
         //SDL_Rect rect = *data_ptr->files_rect[i];
         data_ptr->files_rect[i]->x = curr_x;
         data_ptr->files_rect[i]->y = curr_y;
+        //printf("%d, %d\n", data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->y);
+        */
+        
+        //printf("%d, %d, %d, %d", data_ptr->icon_rect[i]->x, data_ptr->icon_rect[i]->y, data_ptr->icon_rect[i]->w, data_ptr->icon_rect[i]->h);
         SDL_RenderCopy(renderer, data_ptr->directory_icon, NULL, &(*data_ptr->icon_rect[i]));
         SDL_QueryTexture(data_ptr->files_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
         SDL_RenderCopy(renderer, data_ptr->files_textures[i], NULL, data_ptr->files_rect[i]);
-        data_ptr->files_rect[i]->x += 400;
+        /*data_ptr->files_rect[i]->x += 400;
         if (data_ptr->file_sizes[i] != -1) {
             SDL_QueryTexture(data_ptr->file_sizes_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
             SDL_RenderCopy(renderer, data_ptr->file_sizes_textures[i], NULL, data_ptr->files_rect[i]);
-        }
+        }*/
         //SDL_Surface *img_surf = IMG_Load("resrc/images/tux.png");
         //data_ptr->penguin = SDL_CreateTextureFromSurface(renderer, img_surf);
         //SDL_FreeSurface(img_surf);
-        curr_y = curr_y + 30;
-        icon_y = icon_y + 30;
+        //curr_y = curr_y + 30;
+        //icon_y = icon_y + 30;
 
+        //What is this section
         SDL_RenderCopy(renderer, data_ptr->left_arrow_icon, NULL, &(data_ptr->left_arrow_rect));
         data_ptr->left_arrow_rect.x = 250;
         data_ptr->left_arrow_rect.y = 500;
@@ -250,10 +262,27 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
         }
     }
     printf("clicked on empty space");
-    return nullReturn;
+    return "help";
 }
 
 void clickedOnDirectory(AppData *data_ptr) {
-    //Not sure what to put here tbh
-    return;
+    int curr_x = 60;
+    int curr_y = 10;
+    int icon_y = 10;
+    for (int i = data_ptr->page * 15; i < data_ptr->page * 15 + 15; i++) {
+        data_ptr->files_rect.push_back(new SDL_Rect);
+        data_ptr->icon_rect.push_back(new SDL_Rect);
+        data_ptr->icon_rect[i]->x = 10;
+        data_ptr->icon_rect[i]->y = icon_y;
+        data_ptr->icon_rect[i]->w = 40;
+        data_ptr->icon_rect[i]->h = 40;
+        //SDL_Rect rect = *data_ptr->files_rect[i];
+        data_ptr->files_rect[i]->x = curr_x;
+        data_ptr->files_rect[i]->y = curr_y;   
+        //printf("%d, %d, %d, %d", data_ptr->icon_rect[i]->x, data_ptr->icon_rect[i]->y, data_ptr->icon_rect[i]->w, data_ptr->icon_rect[i]->h);
+
+        curr_y = curr_y + 30;
+        icon_y = icon_y + 30;
+    }   
+        return;
 }
