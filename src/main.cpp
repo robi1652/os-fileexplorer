@@ -9,6 +9,12 @@
 #include <bits/stdc++.h>
 #include <algorithm>
 #include <vector>
+#include <filesystem>
+#include <fstream>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #define WIDTH 800
 #define HEIGHT 600
@@ -21,14 +27,22 @@ typedef struct AppData {
     SDL_Texture *image_icon;
     SDL_Texture *right_arrow_icon;
     SDL_Texture *left_arrow_icon;
+    SDL_Texture *file_icon;
+    SDL_Texture *code_icon;
+    SDL_Texture *executable_icon;
+    SDL_Texture *video_icon;
     //SDL_Texture *phrase;
     std::vector<SDL_Texture*> files_textures;
     std::vector<SDL_Texture*> file_sizes_textures;
+    std::vector<SDL_Texture*> permissions_textures;
     std::vector<SDL_Rect*> files_rect;
+    std::vector<SDL_Rect*> sizes_rect;
     std::vector<SDL_Rect*> icon_rect;
+    std::vector<SDL_Rect*> permissions_rect;
     SDL_Rect right_arrow_rect;
     SDL_Rect left_arrow_rect;
     int page = 0;
+    std::string current_directory;
 } AppData;
 
 void initialize(SDL_Renderer *renderer, AppData *data_ptr);
@@ -89,7 +103,7 @@ int main(int argc, char **argv)
 
 void initialize(SDL_Renderer *renderer, AppData *data_ptr)
 {
-    data_ptr->font = TTF_OpenFont("resrc/OpenSans-Regular.ttf", 24);
+    data_ptr->font = TTF_OpenFont("resrc/OpenSans-Regular.ttf", 20);
 
     //SDL_Surface *img_surf = IMG_Load("resrc/images/tux.png");
     //data_ptr->penguin = SDL_CreateTextureFromSurface(renderer, img_surf);
@@ -101,6 +115,7 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
 
     struct stat info;
     std::cout << getenv("HOME") << std::endl;
+    data_ptr->current_directory = std::string(getenv("HOME"));
     int err = stat(getenv("HOME"), &info);
     if (err == 0 && S_ISDIR(info.st_mode))
     {
@@ -120,6 +135,7 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
         closedir(dir);
 
         std::sort(data_ptr->files.begin(), data_ptr->files.end());
+        data_ptr->files.erase(data_ptr->files.begin());
 
         int file_err;
         struct stat file_info;
@@ -139,6 +155,15 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
             else {
                 printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
                 data_ptr->file_sizes.push_back(file_info.st_size);
+                std::string file_permissions = std::string(( (file_info.st_mode & S_IRUSR) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWUSR) ? "w" : "-"))
+                + std::string(( (file_info.st_mode & S_IXUSR) ? "x" : "-")) + std::string(( (file_info.st_mode & S_IRGRP) ? "r" : "-")) +
+                std::string(( (file_info.st_mode & S_IWGRP) ? "w" : "-")) + std::string(( (file_info.st_mode & S_IXGRP) ? "x" : "-")) +
+                std::string(( (file_info.st_mode & S_IROTH) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWOTH) ? "w" : "-")) +
+                std::string(( (file_info.st_mode & S_IXOTH) ? "x" : "-"));
+                SDL_Surface *phrase_surf = TTF_RenderText_Solid(data_ptr->font, file_permissions.c_str(), color);
+                SDL_Texture *file_permissions_texture = SDL_CreateTextureFromSurface(renderer, phrase_surf);
+                data_ptr->permissions_textures.push_back(file_permissions_texture);
+                SDL_FreeSurface(phrase_surf);
             }
             //file_err = stat(full_path.c_str(), &file_info);
             //std::string to_display = data_ptr->files[i] + std::string(" (") + std::string((char*)file_info.st_size) + std::string(")");
@@ -162,6 +187,14 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
         data_ptr->right_arrow_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
         img_surf = IMG_Load("resrc/images/left_arrow_icon.png");
         data_ptr->left_arrow_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+        img_surf = IMG_Load("resrc/images/basic_file_icon.png");
+        data_ptr->file_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+        img_surf = IMG_Load("resrc/images/code_icon.png");
+        data_ptr->code_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+        img_surf = IMG_Load("resrc/images/executable_icon.png");
+        data_ptr->executable_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+        img_surf = IMG_Load("resrc/images/video_icon.png");
+        data_ptr->video_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
         SDL_FreeSurface(img_surf);
     }
 
@@ -184,7 +217,7 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
     //int curr_y = 10;
 
     //int icon_y = 10;
-    for (int i = data_ptr->page * 15; i < data_ptr->page * 15 + 15; i++) {
+    for (int i = data_ptr->page * 10; i < data_ptr->page * 10 + 10; i++) {
         /*
         data_ptr->files_rect.push_back(new SDL_Rect);
         data_ptr->icon_rect.push_back(new SDL_Rect);
@@ -199,14 +232,46 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
         */
         
         //printf("%d, %d, %d, %d", data_ptr->icon_rect[i]->x, data_ptr->icon_rect[i]->y, data_ptr->icon_rect[i]->w, data_ptr->icon_rect[i]->h);
-        SDL_RenderCopy(renderer, data_ptr->directory_icon, NULL, &(*data_ptr->icon_rect[i]));
+        if (data_ptr->file_sizes[i] == -1) {
+            //Directory
+            SDL_RenderCopy(renderer, data_ptr->directory_icon, NULL, &(*data_ptr->icon_rect[i]));
+        } else {
+            std::string path = data_ptr->current_directory + std::string("/") + std::string(data_ptr->files[i]);
+            int returnval = 0;
+            returnval = access(path.c_str(), X_OK);
+            //Check if execute permissions
+            if (returnval == 0) {
+                SDL_RenderCopy(renderer, data_ptr->executable_icon, NULL, &(*data_ptr->icon_rect[i]));
+            } else {
+                if (data_ptr->files[0].find(std::string(".jpg")) != std::string::npos || data_ptr->files[0].find(std::string(".jpeg")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".png")) != std::string::npos || data_ptr->files[0].find(std::string(".tif")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".tiff")) != std::string::npos || data_ptr->files[0].find(std::string(".gif")) != std::string::npos) {
+                    //Image
+                    SDL_RenderCopy(renderer, data_ptr->image_icon, NULL, &(*data_ptr->icon_rect[i]));
+                } else if (data_ptr->files[0].find(std::string(".mp4")) != std::string::npos || data_ptr->files[0].find(std::string(".mov")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".mkv")) != std::string::npos || data_ptr->files[0].find(std::string(".avi")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".webm")) != std::string::npos) {
+                    //Video
+                    SDL_RenderCopy(renderer, data_ptr->video_icon, NULL, &(*data_ptr->icon_rect[i]));
+                } else if (data_ptr->files[0].find(std::string(".h")) != std::string::npos || data_ptr->files[0].find(std::string(".c")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".cpp")) != std::string::npos || data_ptr->files[0].find(std::string(".py")) != std::string::npos ||
+                data_ptr->files[0].find(std::string(".java")) != std::string::npos || data_ptr->files[0].find(std::string(".js")) != std::string::npos) {
+                    //Code File
+                    SDL_RenderCopy(renderer, data_ptr->code_icon, NULL, &(*data_ptr->icon_rect[i]));
+                } else {
+                    //Other
+                    SDL_RenderCopy(renderer, data_ptr->file_icon, NULL, &(*data_ptr->icon_rect[i]));
+                }
+            }
+        }
         SDL_QueryTexture(data_ptr->files_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
         SDL_RenderCopy(renderer, data_ptr->files_textures[i], NULL, data_ptr->files_rect[i]);
-        /*data_ptr->files_rect[i]->x += 400;
         if (data_ptr->file_sizes[i] != -1) {
-            SDL_QueryTexture(data_ptr->file_sizes_textures[i], NULL, NULL, &(data_ptr->files_rect[i]->w), &(data_ptr->files_rect[i]->h));
-            SDL_RenderCopy(renderer, data_ptr->file_sizes_textures[i], NULL, data_ptr->files_rect[i]);
-        }*/
+            SDL_QueryTexture(data_ptr->file_sizes_textures[i], NULL, NULL, &(data_ptr->sizes_rect[i]->w), &(data_ptr->sizes_rect[i]->h));
+            SDL_RenderCopy(renderer, data_ptr->file_sizes_textures[i], NULL, data_ptr->sizes_rect[i]);
+        }
+        SDL_QueryTexture(data_ptr->permissions_textures[i], NULL, NULL, &(data_ptr->permissions_rect[i]->w), &(data_ptr->permissions_rect[i]->h));
+        SDL_RenderCopy(renderer, data_ptr->permissions_textures[i], NULL, data_ptr->permissions_rect[i]);
         //SDL_Surface *img_surf = IMG_Load("resrc/images/tux.png");
         //data_ptr->penguin = SDL_CreateTextureFromSurface(renderer, img_surf);
         //SDL_FreeSurface(img_surf);
@@ -216,12 +281,12 @@ void render(SDL_Renderer *renderer, AppData *data_ptr)
         //What is this section
         SDL_RenderCopy(renderer, data_ptr->left_arrow_icon, NULL, &(data_ptr->left_arrow_rect));
         data_ptr->left_arrow_rect.x = 250;
-        data_ptr->left_arrow_rect.y = 500;
+        data_ptr->left_arrow_rect.y = 525;
         data_ptr->left_arrow_rect.w = 40;
         data_ptr->left_arrow_rect.h = 40;
         SDL_RenderCopy(renderer, data_ptr->right_arrow_icon, NULL, &(data_ptr->right_arrow_rect));
         data_ptr->right_arrow_rect.x = 450;
-        data_ptr->right_arrow_rect.y = 500;
+        data_ptr->right_arrow_rect.y = 525;
         data_ptr->right_arrow_rect.w = 40;
         data_ptr->right_arrow_rect.h = 40;
     }
@@ -269,9 +334,11 @@ void clickedOnDirectory(AppData *data_ptr) {
     int curr_x = 60;
     int curr_y = 10;
     int icon_y = 10;
-    for (int i = data_ptr->page * 15; i < data_ptr->page * 15 + 15; i++) {
+    for (int i = data_ptr->page * 10; i < data_ptr->page * 10 + 10; i++) {
         data_ptr->files_rect.push_back(new SDL_Rect);
         data_ptr->icon_rect.push_back(new SDL_Rect);
+        data_ptr->sizes_rect.push_back(new SDL_Rect);
+        data_ptr->permissions_rect.push_back(new SDL_Rect);
         data_ptr->icon_rect[i]->x = 10;
         data_ptr->icon_rect[i]->y = icon_y;
         data_ptr->icon_rect[i]->w = 40;
@@ -281,8 +348,14 @@ void clickedOnDirectory(AppData *data_ptr) {
         data_ptr->files_rect[i]->y = curr_y;   
         //printf("%d, %d, %d, %d", data_ptr->icon_rect[i]->x, data_ptr->icon_rect[i]->y, data_ptr->icon_rect[i]->w, data_ptr->icon_rect[i]->h);
 
-        curr_y = curr_y + 30;
-        icon_y = icon_y + 30;
+        data_ptr->sizes_rect[i]->x = 550;
+        data_ptr->sizes_rect[i]->y = curr_y;
+
+        data_ptr->permissions_rect[i]->x = 700;
+        data_ptr->permissions_rect[i]->y = curr_y;
+
+        curr_y = curr_y + 50;
+        icon_y = icon_y + 50;
     }   
         return;
 }
