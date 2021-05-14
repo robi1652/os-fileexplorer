@@ -80,9 +80,20 @@ int main(int argc, char **argv)
         {
             case SDL_MOUSEBUTTONDOWN:
                 std::string itemClicked = clickedCheck(&data, &event);
-                clickedOnDirectory(&data);
+                struct stat fileStat;
+                //Need filepath
+                if (stat(data->current_directory + "/" + itemClicked,&s) == 0) {
+                    if (s.st_mode & S_IFDIR) {
+                        data->current_directory += "/" + itemClicked;
+                        clickedOnDirectory(&data);
+                    } else {
+                        //It's a file, call a method to run it
+                    }
+                }
+                
+                
                 //How do we know what's a directory and what's a file
-                printf("%s\n", itemClicked.c_str());
+                //printf("%s\n", itemClicked.c_str());
         }
         
         //Should be an if check to make sure it's actually a directory
@@ -299,9 +310,9 @@ void quit(AppData *data_ptr)
 
 std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
     int i = 0;
-    printf("%d : %d\n", event->button.x, event->button.y);
+    //printf("%d : %d\n", event->button.x, event->button.y);
     for (i = 0; i < data_ptr->files.size(); i++) {
-        printf("%d :  %d %d %d %d\n",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h, data_ptr->files_rect[i]->w );
+        //printf("%d :  %d %d %d %d\n",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h, data_ptr->files_rect[i]->w );
         if (event->button.button == SDL_BUTTON_LEFT &&
             event->button.x >= data_ptr->files_rect[i]->x &&
             event->button.x <= data_ptr->files_rect[i]->x + data_ptr->files_rect[i]->w &&
