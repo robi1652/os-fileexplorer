@@ -15,12 +15,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <iterator>
 
 #define WIDTH 800
 #define HEIGHT 600
 
 typedef struct AppData {
     std::vector<std::string> files;
+    std::vector<std::string> files_displayed;
     std::vector<int> file_sizes;
     TTF_Font *font;
     SDL_Texture *directory_icon;
@@ -50,6 +52,7 @@ void render(SDL_Renderer *renderer, AppData *data_ptr);
 void quit(AppData *data_ptr);
 std::string clickedCheck(AppData *data_ptr, SDL_Event *event);
 void clickedOnDirectory(AppData *data_ptr);
+void updateFileList(SDL_Renderer *renderer, AppData *data_ptr);
 
 int main(int argc, char **argv)
 {
@@ -80,21 +83,27 @@ int main(int argc, char **argv)
         {
             case SDL_MOUSEBUTTONDOWN:
                 std::string itemClicked = clickedCheck(&data, &event);
+                
                 struct stat fileStat;
                 //Need filepath
-                if (stat(data->current_directory + "/" + itemClicked,&s) == 0) {
-                    if (s.st_mode & S_IFDIR) {
-                        data->current_directory += "/" + itemClicked;
+                if (stat((data.current_directory + "/" + itemClicked).c_str(), &fileStat) == 0) {
+                    if (fileStat.st_mode & S_IFDIR) {
+                        data.current_directory += "/" + itemClicked;
+                        printf("%s\n", data.current_directory.c_str());
+                        updateFileList(renderer, &data);
                         clickedOnDirectory(&data);
-                    } else {
+                    } else if (fileStat.st_mode & S_IFREG){
                         //It's a file, call a method to run it
                     }
-                }
-                
-                
+                } 
+                clickedOnDirectory(&data);
                 //How do we know what's a directory and what's a file
-                //printf("%s\n", itemClicked.c_str());
+                printf("%s\n", itemClicked.c_str());
+                for (int i = 0; i < data.files_displayed.size(); i++) {
+                    printf("%s\n", data.files_displayed[i].c_str());
+                }
         }
+        
         
         //Should be an if check to make sure it's actually a directory
         render(renderer, &data);
@@ -130,8 +139,13 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
         //         my_file.txt (62 bytes)
         //         OS Files (directory)
         struct dirent *entry;
+        int q = 0;
         while ((entry = readdir(dir)) != NULL) {
             data_ptr->files.push_back(entry->d_name);
+            if (q > data_ptr->page*10 && q < data_ptr->page*10+10) {
+                data_ptr->files_displayed.push_back(entry->d_name);
+            }
+            q++;
         }
         closedir(dir);
 
@@ -148,11 +162,11 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
                 fprintf(stderr, "Uh oh, we shouldn't get here\n");
             }
             else if (S_ISDIR(file_info.st_mode)) {
-                printf("%s (directory)\n", data_ptr->files[i].c_str());
+                //printf("%s (directory)\n", data_ptr->files[i].c_str());
                 data_ptr->file_sizes.push_back(-1);
             }
             else {
-                printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
+                //printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
                 data_ptr->file_sizes.push_back(file_info.st_size);
                 std::string file_permissions = std::string(( (file_info.st_mode & S_IRUSR) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWUSR) ? "w" : "-"))
                 + std::string(( (file_info.st_mode & S_IXUSR) ? "x" : "-")) + std::string(( (file_info.st_mode & S_IRGRP) ? "r" : "-")) +
@@ -330,6 +344,7 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             data_ptr->files.size() >= (data_ptr->page + 1) * 10)
         {
             data_ptr->page = data_ptr->page + 1;
+            clickedOnDirectory(data_ptr);
             return "RIGHT ARROW";
         }
         else if (event->button.button == SDL_BUTTON_LEFT &&
@@ -340,18 +355,22 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             data_ptr->page - 1 >= 0)
         {
             data_ptr->page = data_ptr->page - 1;
+            clickedOnDirectory(data_ptr);
             return "LEFT ARROW";
         }
     }
-    printf("clicked on empty space");
+    printf("clicked on empty space\n");
     return "help";
 }
 
+
 void clickedOnDirectory(AppData *data_ptr) {
+    data_ptr->files_displayed.erase(data_ptr->files_displayed.begin(), data_ptr->files_displayed.end());
     int curr_x = 60;
     int curr_y = 10;
     int icon_y = 10;
     for (int i = data_ptr->page * 10; i < data_ptr->page * 10 + 10; i++) {
+        data_ptr->files_displayed.push_back(data_ptr->files[i]);
         if (i >= data_ptr->files.size()) {
             return;
         }
@@ -378,4 +397,88 @@ void clickedOnDirectory(AppData *data_ptr) {
         icon_y = icon_y + 50;
     }   
         return;
+}
+
+
+void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
+    data_ptr->files.erase(data_ptr->files.begin(), data_ptr->files.end());
+    data_ptr->file_sizes.erase(data_ptr->file_sizes.begin(), data_ptr->file_sizes.end());
+    data_ptr->files_textures.erase(data_ptr->files_textures.begin(), data_ptr->files_textures.end());
+    data_ptr->file_sizes_textures.erase(data_ptr->file_sizes_textures.begin(), data_ptr->file_sizes_textures.end());
+    data_ptr->permissions_textures.erase(data_ptr->permissions_textures.begin(), data_ptr->permissions_textures.end());
+    data_ptr->files_rect.erase(data_ptr->files_rect.begin(), data_ptr->files_rect.end());
+    data_ptr->sizes_rect.erase(data_ptr->sizes_rect.begin(), data_ptr->sizes_rect.end());
+    data_ptr->icon_rect.erase(data_ptr->icon_rect.begin(), data_ptr->icon_rect.end());
+    data_ptr->permissions_rect.erase(data_ptr->permissions_rect.begin(), data_ptr->permissions_rect.end());
+    
+    DIR* dir = opendir(data_ptr->current_directory.c_str());
+    struct dirent *entry;
+    int q = 0;
+    while ((entry = readdir(dir)) != NULL) {
+        if (q > data_ptr->page*10 && q < data_ptr->page*10+10) {
+            data_ptr->files.push_back(entry->d_name);
+        }
+        q++;
+        //data_ptr->files.push_back(entry->d_name);
+    }
+    
+    closedir(dir);
+
+    std::sort(data_ptr->files.begin(), data_ptr->files.end());
+    struct stat file_info;
+    for (int i = 0; i < data_ptr->files.size(); i++) {
+        SDL_Color color = { 0, 0, 0 };
+        //std::string full_path = getenv("HOME") + std::string("/") + data_ptr->files[i];
+        //file_err = stat(full_path.c_str(), &file_info);
+        if (S_ISDIR(file_info.st_mode)) {
+            //printf("%s (directory)\n", data_ptr->files[i].c_str());
+            data_ptr->file_sizes.push_back(-1);
+        }
+        else {
+            //printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
+            data_ptr->file_sizes.push_back(file_info.st_size);
+            std::string file_permissions = std::string(( (file_info.st_mode & S_IRUSR) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWUSR) ? "w" : "-"))
+            + std::string(( (file_info.st_mode & S_IXUSR) ? "x" : "-")) + std::string(( (file_info.st_mode & S_IRGRP) ? "r" : "-")) +
+            std::string(( (file_info.st_mode & S_IWGRP) ? "w" : "-")) + std::string(( (file_info.st_mode & S_IXGRP) ? "x" : "-")) +
+            std::string(( (file_info.st_mode & S_IROTH) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWOTH) ? "w" : "-")) +
+            std::string(( (file_info.st_mode & S_IXOTH) ? "x" : "-"));
+        }
+        SDL_Surface *phrase_surf = TTF_RenderText_Solid(data_ptr->font, data_ptr->files[i].c_str(), color);
+        SDL_Texture *file = SDL_CreateTextureFromSurface(renderer, phrase_surf);
+        data_ptr->files_textures.push_back(file);
+        SDL_FreeSurface(phrase_surf);
+
+        std::string file_size1 = std::to_string(data_ptr->file_sizes[i]) + std::string(" bytes");
+        phrase_surf = TTF_RenderText_Solid(data_ptr->font, file_size1.c_str(), color);
+        SDL_Texture *file_size = SDL_CreateTextureFromSurface(renderer, phrase_surf);
+        data_ptr->file_sizes_textures.push_back(file_size);
+        SDL_FreeSurface(phrase_surf);
+
+        std::string file_permissions = std::string(( (file_info.st_mode & S_IRUSR) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWUSR) ? "w" : "-"))
+            + std::string(( (file_info.st_mode & S_IXUSR) ? "x" : "-")) + std::string(( (file_info.st_mode & S_IRGRP) ? "r" : "-")) +
+            std::string(( (file_info.st_mode & S_IWGRP) ? "w" : "-")) + std::string(( (file_info.st_mode & S_IXGRP) ? "x" : "-")) +
+            std::string(( (file_info.st_mode & S_IROTH) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWOTH) ? "w" : "-")) +
+            std::string(( (file_info.st_mode & S_IXOTH) ? "x" : "-"));
+        phrase_surf = TTF_RenderText_Solid(data_ptr->font, file_permissions.c_str(), color);
+        SDL_Texture *file_permissions_texture = SDL_CreateTextureFromSurface(renderer, phrase_surf);
+        data_ptr->permissions_textures.push_back(file_permissions_texture);
+        SDL_FreeSurface(phrase_surf);
+    }
+    SDL_Surface *img_surf = IMG_Load("resrc/images/folder_icon.png");
+    data_ptr->directory_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/image_icon.png");
+    data_ptr->image_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/right_arrow_icon.png");
+    data_ptr->right_arrow_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/left_arrow_icon.png");
+    data_ptr->left_arrow_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/basic_file_icon.png");
+    data_ptr->file_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/code_icon.png");
+    data_ptr->code_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/executable_icon.png");
+    data_ptr->executable_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    img_surf = IMG_Load("resrc/images/video_icon.png");
+    data_ptr->video_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
+    SDL_FreeSurface(img_surf);   
 }
