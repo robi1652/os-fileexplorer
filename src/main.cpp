@@ -401,6 +401,7 @@ void clickedOnDirectory(AppData *data_ptr) {
 
 
 void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
+    std::cout << "-----------------------------" << std::endl;
     data_ptr->files.erase(data_ptr->files.begin(), data_ptr->files.end());
     data_ptr->file_sizes.erase(data_ptr->file_sizes.begin(), data_ptr->file_sizes.end());
     data_ptr->files_textures.erase(data_ptr->files_textures.begin(), data_ptr->files_textures.end());
@@ -425,17 +426,23 @@ void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
     closedir(dir);
 
     std::sort(data_ptr->files.begin(), data_ptr->files.end());
+    if (!data_ptr->files[0].compare(std::string("."))) {
+        data_ptr->files.erase(data_ptr->files.begin());
+    }
+
     struct stat file_info;
     for (int i = 0; i < data_ptr->files.size(); i++) {
         SDL_Color color = { 0, 0, 0 };
-        //std::string full_path = getenv("HOME") + std::string("/") + data_ptr->files[i];
-        //file_err = stat(full_path.c_str(), &file_info);
+        int file_err;
+        //std::cout << "CURRENT DIRECTORY: " << data_ptr->current_directory.c_str() << std::endl;
+        std::string full_path = std::string(data_ptr->current_directory.c_str()) + std::string("/") + data_ptr->files[i];
+        file_err = stat(full_path.c_str(), &file_info);
         if (S_ISDIR(file_info.st_mode)) {
             //printf("%s (directory)\n", data_ptr->files[i].c_str());
             data_ptr->file_sizes.push_back(-1);
         }
         else {
-            //printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
+            printf("%s (%ld bytes)\n", data_ptr->files[i].c_str(), file_info.st_size);
             data_ptr->file_sizes.push_back(file_info.st_size);
             std::string file_permissions = std::string(( (file_info.st_mode & S_IRUSR) ? "r" : "-")) + std::string(( (file_info.st_mode & S_IWUSR) ? "w" : "-"))
             + std::string(( (file_info.st_mode & S_IXUSR) ? "x" : "-")) + std::string(( (file_info.st_mode & S_IRGRP) ? "r" : "-")) +
@@ -463,6 +470,8 @@ void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
         SDL_Texture *file_permissions_texture = SDL_CreateTextureFromSurface(renderer, phrase_surf);
         data_ptr->permissions_textures.push_back(file_permissions_texture);
         SDL_FreeSurface(phrase_surf);
+
+        //std::cout << "NAME: " << data_ptr->files[i] << ", SIZE: " << data_ptr->file_sizes[i];
     }
     SDL_Surface *img_surf = IMG_Load("resrc/images/folder_icon.png");
     data_ptr->directory_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
