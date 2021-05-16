@@ -183,7 +183,24 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
             data_ptr->files_textures.push_back(file);
             SDL_FreeSurface(phrase_surf);
 
-            std::string file_size1 = std::to_string(data_ptr->file_sizes[i]) + std::string(" bytes");
+            std::string suffix = std::string(" B");
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" KB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" KB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" MB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" GB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            std::string file_size1 = std::to_string(data_ptr->file_sizes[i]) + suffix;
             phrase_surf = TTF_RenderText_Solid(data_ptr->font, file_size1.c_str(), color);
             SDL_Texture *file_size = SDL_CreateTextureFromSurface(renderer, phrase_surf);
             data_ptr->file_sizes_textures.push_back(file_size);
@@ -455,7 +472,24 @@ void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
         data_ptr->files_textures.push_back(file);
         SDL_FreeSurface(phrase_surf);
 
-        std::string file_size1 = std::to_string(data_ptr->file_sizes[i]) + std::string(" bytes");
+        std::string suffix = std::string(" B");
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" KB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" KB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" MB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            if (data_ptr->file_sizes[i] >= 1024) {
+                suffix = std::string(" GB");
+                data_ptr->file_sizes[i] = data_ptr->file_sizes[i] / 1024;
+            }
+            std::string file_size1 = std::to_string(data_ptr->file_sizes[i]) + suffix;
         phrase_surf = TTF_RenderText_Solid(data_ptr->font, file_size1.c_str(), color);
         SDL_Texture *file_size = SDL_CreateTextureFromSurface(renderer, phrase_surf);
         data_ptr->file_sizes_textures.push_back(file_size);
