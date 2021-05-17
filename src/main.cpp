@@ -104,6 +104,11 @@ int main(int argc, char **argv)
                         clickedOnDirectory(&data);
                     } else if (fileStat.st_mode & S_IFREG){
                         //It's a file, call a method to run it
+                        int pid = fork();
+                        if (pid == 0) {
+                            execl("/usr/bin/xdg-open", "xdg-open", (data.current_directory + "/" + itemClicked).c_str(), (char *)0);
+                            exit(1);
+                        }
                     }
                 } 
                 clickedOnDirectory(&data);
