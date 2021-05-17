@@ -45,6 +45,7 @@ typedef struct AppData {
     SDL_Rect left_arrow_rect;
     int page = 0;
     std::string current_directory;
+    std::string previous_directory;
 } AppData;
 
 void initialize(SDL_Renderer *renderer, AppData *data_ptr);
@@ -83,12 +84,21 @@ int main(int argc, char **argv)
         {
             case SDL_MOUSEBUTTONDOWN:
                 std::string itemClicked = clickedCheck(&data, &event);
+                //if (itemClicked == "RIGHT ARROW" || itemClicked == "LEFT ARROW") {
+                //    data.files.erase(data.files.begin(), data.files.end());
+                //    data.files = data.files_displayed;
+                //    continue;
+                //}
                 
                 struct stat fileStat;
                 //Need filepath
                 if (stat((data.current_directory + "/" + itemClicked).c_str(), &fileStat) == 0) {
                     if (fileStat.st_mode & S_IFDIR) {
-                        data.current_directory += "/" + itemClicked;
+                        data.previous_directory = data.current_directory;
+                        if (itemClicked != "..") {
+                            data.current_directory += "/" + itemClicked;
+                        }
+                        
                         printf("%s\n", data.current_directory.c_str());
                         updateFileList(renderer, &data);
                         clickedOnDirectory(&data);
@@ -128,6 +138,7 @@ void initialize(SDL_Renderer *renderer, AppData *data_ptr)
     struct stat info;
     std::cout << getenv("HOME") << std::endl;
     data_ptr->current_directory = std::string(getenv("HOME"));
+    data_ptr->previous_directory = data_ptr->current_directory;
     int err = stat(getenv("HOME"), &info);
     if (err == 0 && S_ISDIR(info.st_mode))
     {
@@ -350,7 +361,9 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             event->button.y >= data_ptr->files_rect[i]->y &&
             event->button.y <= data_ptr->files_rect[i]->y + data_ptr->files_rect[i]->h)
         {
-            
+            if (data_ptr->files[i] == "..") {
+                data_ptr->current_directory = data_ptr->previous_directory;
+            }
             return data_ptr->files[i];
         }
         else if (event->button.button == SDL_BUTTON_LEFT &&
@@ -361,7 +374,7 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             data_ptr->files.size() >= (data_ptr->page + 1) * 10)
         {
             data_ptr->page = data_ptr->page + 1;
-            clickedOnDirectory(data_ptr);
+            //clickedOnDirectory(data_ptr);
             return "RIGHT ARROW";
         }
         else if (event->button.button == SDL_BUTTON_LEFT &&
@@ -372,7 +385,7 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             data_ptr->page - 1 >= 0)
         {
             data_ptr->page = data_ptr->page - 1;
-            clickedOnDirectory(data_ptr);
+            //clickedOnDirectory(data_ptr);
             return "LEFT ARROW";
         }
     }
