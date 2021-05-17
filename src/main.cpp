@@ -98,7 +98,7 @@ int main(int argc, char **argv)
                         if (itemClicked != "..") {
                             data.current_directory += "/" + itemClicked;
                         }
-                        
+                        data.page = 0;
                         printf("%s\n", data.current_directory.c_str());
                         updateFileList(renderer, &data);
                         clickedOnDirectory(&data);
@@ -353,7 +353,10 @@ void quit(AppData *data_ptr)
 std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
     int i = 0;
     //printf("%d : %d\n", event->button.x, event->button.y);
-    for (i = 0; i < data_ptr->files.size(); i++) {
+    for (int i = data_ptr->page * 10; i < data_ptr->page * 10 + 10; i++) {
+        if (i >= data_ptr->files.size()) {
+            return "clicked empty space";
+        }
         //printf("%d :  %d %d %d %d\n",i, data_ptr->files_rect[i]->x, data_ptr->files_rect[i]->y, data_ptr->files_rect[i]->h, data_ptr->files_rect[i]->w );
         if (event->button.button == SDL_BUTTON_LEFT &&
             event->button.x >= data_ptr->files_rect[i]->x &&
@@ -446,10 +449,10 @@ void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
     struct dirent *entry;
     int q = 0;
     while ((entry = readdir(dir)) != NULL) {
-        if (q > data_ptr->page*10 && q < data_ptr->page*10+10) {
-            data_ptr->files.push_back(entry->d_name);
-        }
-        q++;
+        //if (q > data_ptr->page*10 && q < data_ptr->page*10+10) {
+        data_ptr->files.push_back(entry->d_name);
+        //}
+        //q++;
         //data_ptr->files.push_back(entry->d_name);
     }
     
