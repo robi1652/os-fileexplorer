@@ -94,9 +94,10 @@ int main(int argc, char **argv)
                 //Need filepath
                 if (stat((data.current_directory + "/" + itemClicked).c_str(), &fileStat) == 0) {
                     if (fileStat.st_mode & S_IFDIR) {
-                        data.previous_directory = data.current_directory;
                         if (itemClicked != "..") {
+                            //data.previous_directory = data.current_directory;
                             data.current_directory += "/" + itemClicked;
+                            std::cout << "NEW CURRENT DIRECTORY: " << data.current_directory << std::endl;
                         }
                         data.page = 0;
                         printf("%s\n", data.current_directory.c_str());
@@ -370,7 +371,20 @@ std::string clickedCheck(AppData *data_ptr, SDL_Event *event) {
             event->button.y <= data_ptr->files_rect[i]->y + data_ptr->files_rect[i]->h)
         {
             if (data_ptr->files[i] == "..") {
-                data_ptr->current_directory = data_ptr->previous_directory;
+                std::vector<std::string> path_parts;
+                std::cout << "CURRENT DIRECTORY: " << data_ptr->current_directory << std::endl;
+                char* token = strtok((char*)data_ptr->current_directory.c_str(), "/");
+                while (token != NULL) {
+                    path_parts.push_back(token);
+                    token = strtok (NULL, "/");
+                }
+                std::string new_current = std::string("");
+                for (int i = 0; i < path_parts.size()-1; i++) {
+                    std::cout << i << std::endl;
+                    new_current = new_current + std::string("/") + path_parts[i];
+                }
+                data_ptr->current_directory = new_current;
+                std::cout << data_ptr->current_directory << std::endl;
             }
             return data_ptr->files[i];
         }
@@ -525,8 +539,6 @@ void updateFileList(SDL_Renderer *renderer, AppData *data_ptr) {
         SDL_Texture *file_permissions_texture = SDL_CreateTextureFromSurface(renderer, phrase_surf);
         data_ptr->permissions_textures.push_back(file_permissions_texture);
         SDL_FreeSurface(phrase_surf);
-
-        //std::cout << "NAME: " << data_ptr->files[i] << ", SIZE: " << data_ptr->file_sizes[i];
     }
     SDL_Surface *img_surf = IMG_Load("resrc/images/folder_icon.png");
     data_ptr->directory_icon = SDL_CreateTextureFromSurface(renderer, img_surf);
